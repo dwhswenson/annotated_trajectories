@@ -71,10 +71,8 @@ class AnnotatedTrajectory(StorableNamedObject):
         return all_segments
 
     def get_unassigned(self):
-        assigned = sum([
-            sum([self._annotation_dict[k] for k in self._annotation_dict], [])
-        ], [])
-        unassigned = set(range(len(self.trajectory) + 1)) - set(assigned)
+        unassigned = [k for k in range(len(self._frame_map))
+                      if self._frame_map[k] is None]
         return unassigned
 
     @property
@@ -96,8 +94,6 @@ class AnnotatedTrajectory(StorableNamedObject):
                       for a in self._annotation_dict[state_name]]
             in_state = [i for i in range(len(self.trajectory))
                         if state(self.trajectory[i])]
-
-
 
 
 def plot_annotated(trajectory, cv, plot_styles=None):
