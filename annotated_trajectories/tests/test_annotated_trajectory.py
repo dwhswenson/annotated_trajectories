@@ -23,6 +23,12 @@ class TestAnnotatedTrajectory(object):
         self.annotation_3 = Annotation(state="3-digit", begin=10, end=10)
         self.annotation_4 = Annotation(state="2-digit", begin=11, end=12)
 
+        self.states = {
+            "1-digit": self.state_1,
+            "2-digit": self.state_2,
+            "3-digit": self.state_3
+        }
+
         self.annotated = AnnotatedTrajectory(self.traj)
         self.annotations = [self.annotation_1, self.annotation_2,
                             self.annotation_3, self.annotation_4]
@@ -120,10 +126,43 @@ class TestAnnotatedTrajectory(object):
         assert_equal(set(unassigned), set([0, 5, 9]))
 
     def test_validation_idxs(self):
-        raise SkipTest
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        annotated.add_annotations(Annotation(state="1-digit", begin=5,
+                                             end=5))
+        results_1 = annotated._validation_idxs(
+            state=self.state_1,
+            state_annotations=annotated._annotation_dict["1-digit"]
+        )
+        results_2 = annotated._validation_idxs(
+            state=self.state_2,
+            state_annotations=annotated._annotation_dict["2-digit"]
+        )
+        # correct, false_positive, false_negative
+        assert_equal(results_1[0], set([1, 2, 3, 4]))
+        assert_equal(results_1[1], set([]))
+        assert_equal(results_1[2], set([5]))
+
+        assert_equal(results_2[0], set([6, 7, 8, 11, 12]))
+        assert_equal(results_2[1], set([5]))
+        assert_equal(results_2[2], set([]))
 
     def test_validate_states(self):
-        raise SkipTest
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        annotated.add_annotations(Annotation(state="1-digit", begin=5,
+                                             end=5))
+
+        results = annotated.validate_states(self.states)
+        assert_equal(results["1-digit"].correct, [s for s in self.traj[1:5]])
+        assert_equal(results["1-digit"].false_positive, [])
+        assert_equal(results["1-digit"].false_negative, [self.traj[5]])
+        assert_equal(results["2-digit"].correct, 
+                     [s for s in self.traj[6:9]] 
+                     + [self.traj[11], self.traj[12]])
+        assert_equal(results["2-digit"].false_positive, [self.traj[5]])
+        assert_equal(results["2-digit"].false_negative, [])
+        assert_equal(results["3-digit"].correct, [self.traj[10]])
+        assert_equal(results["3-digit"].false_positive, [self.traj[9]])
+        assert_equal(results["3-digit"].false_negative, [])
 
     def test_store_and_reload(self):
         raise SkipTest
