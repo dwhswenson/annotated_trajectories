@@ -53,14 +53,26 @@ class AnnotatedTrajectory(StorableNamedObject):
     """
     def __init__(self, trajectory, annotations=None):
         self.trajectory = trajectory
+        self.annotations = set([])
         self._frame_map = [None]*len(self.trajectory)
         self._annotation_dict = {}
         if annotations is not None:
             self.add_annotations(annotations)
 
+    @classmethod
+    def from_dict(cls, dct):
+        trajectory = dct['trajectory']
+        annotations_list = dct['annotations']
+        annotations = [Annotation(a[0], a[1], a[2]) 
+                       for a in annotations_list]
+        return cls(trajectory, annotations)
+
+
+
     def add_annotations(self, annotations):
         if isinstance(annotations, Annotation):
             annotations = [annotations]
+        self.annotations |= set(annotations)
         for annotation in annotations:
             state = annotation.state
             begin  = annotation.begin

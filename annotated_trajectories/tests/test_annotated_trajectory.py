@@ -4,6 +4,13 @@ from annotated_trajectories import AnnotatedTrajectory, Annotation
 from nose.tools import assert_equal, assert_in
 from nose.plugins.skip import SkipTest
 
+import os
+from pkg_resources import resource_filename
+
+def data_filename(fname):
+    return resource_filename('annotated_trajectories', 
+                             os.path.join('tests', fname))
+
 class TestAnnotatedTrajectory(object):
     def setup(self):
         # set up the trajectory that we'll annotate in the tests
@@ -165,7 +172,41 @@ class TestAnnotatedTrajectory(object):
         assert_equal(results["3-digit"].false_negative, [])
 
     def test_store_and_reload(self):
-        raise SkipTest
+        if os.path.isfile(data_filename("output.nc")):
+            os.remove(data_filename("output.nc"))
+        storage = paths.Storage(data_filename("output.nc"), 'w')
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        storage.tag['traj1'] = annotated
+        storage.close()
+
+        analysis = paths.Storage(data_filename("output.nc"), 'r')
+        reloaded = analysis.tag['traj1']
+
+        assert_equal(len(reloaded.trajectory), 13)
+        assert_equal(len(reloaded.annotations), 4)
+
+        assert_equal(len(reloaded.state_names), 3)
+        assert_equal(set(["1-digit", "2-digit", "3-digit"]),
+                     set(reloaded.state_names))
+        assert_equal(reloaded._annotation_dict["1-digit"], [(1,4)])
+        assert_equal(reloaded._annotation_dict["3-digit"], [(10,10)])
+        assert_equal(set(reloaded._annotation_dict["2-digit"]),
+                     set([(6, 8), (11, 12)]))
+        for (i, label) in enumerate(reloaded._frame_map):
+            if i in range(1, 5):
+                assert_equal(label, "1-digit")
+            elif i in range(6, 9):
+                assert_equal(label, "2-digit")
+            elif i == 10:
+                assert_equal(label, "3-digit")
+            elif i in range (11, 13):
+                assert_equal(label, "2-digit")
+            else:
+                assert_equal(label, None)
+
+
+        if os.path.isfile(data_filename("output.nc")):
+            os.remove(data_filename("output.nc"))
 
 
 def test_plot_annotated():
