@@ -20,6 +20,26 @@ class Annotation(namedtuple('Annotation', ['state', 'begin', 'end'])):
         the final frame that is labelled as in the state (inclusive)
     """
 
+_validation_fields = ['correct', 'false_positive', 'false_negative']
+class ValidationResults(namedtuple('ValidationResults', _validation_fields)):
+    """
+    Object returned by validation.
+    
+    Simply a named tuple with the a list of the correct snapshots, the
+    snapshots which ???
+
+    Parameters
+    ----------
+    correct : list of ``paths.Snapshot``
+        the snapshots which were correctly identified as in the state
+    false_positive : list of ``paths.Snapshot``
+        the snapshots which were identified as in the state by the volume
+        function, but not by the annotation
+    false_negative : list of ``paths.Snapshot``
+        the snapshots which were not identified as in the state by the
+        volume, but were in the state according to the annotation.
+    """
+
 class AnnotatedTrajectory(StorableNamedObject):
     """Trajectory with state annotations.
     
@@ -37,7 +57,6 @@ class AnnotatedTrajectory(StorableNamedObject):
         self._annotation_dict = {}
         if annotations is not None:
             self.add_annotations(annotations)
-        self.names_to_volumes = {}
 
     def add_annotations(self, annotations):
         if isinstance(annotations, Annotation):
@@ -79,25 +98,47 @@ class AnnotatedTrajectory(StorableNamedObject):
     def state_names(self):
         return self._annotation_dict.keys()
 
-    def validate_states(self):
+    def _validation_idxs(self, state, state_annotations):
+        """
+        Find indexes of snapshots labeled correctly, false positive, false
+        negative.
+
+        Used internally by the :meth:`.validate_states` method. This section
+        factored out to facilitate testing.
+        """
+        expected = set(sum([range(a[0], a[1]+1) 
+                            for a in state_annotations], []))
+        in_state = set([i for i in range(len(self.trajectory))
+                        if state(self.trajectory[i])])
+        correct_idxs = expected & in_state
+        false_pos_idxs = in_state - expected
+        false_neg_idxs = expected - in_state
+        return (correct_idxs, false_pos_idxs, false_neg_idxs)
+
+    def validate_states(self, names_to_volumes):
         n_states = len(self._annotation_dict)
-        n_defined = len(self.names_to_volumes)
+        n_defined = len(names_to_volumes)
         if n_defined < n_states:
             pass # log a warning?
         elif n_defined > n_states:
             raise RuntimeError("More states defined than annotated! "
                                + "n_states=" + str(n_states) + "; "
                                + "n_defined=" + str(n_defined))
+        results = {}
         for state_name in self._annotation_dict:
-            state = self.names_to_volumes[state_name]
-            ranges = [range(a[0], a[1]+1) 
-                      for a in self._annotation_dict[state_name]]
-            in_state = [i for i in range(len(self.trajectory))
-                        if state(self.trajectory[i])]
+            state = names_to_volumes[state_name]
+            state_annotations = self._annotation_dict[state_name]
+            idxs = self._validation_idxs(state, state_annotations)
+            correct = [self.trajectory[i] for i in sorted(idxs[0])]
+            false_pos = [self.trajectory[i] for i in sorted(idxs[1])]
+            false_neg = [self.trajectory[i] for i in sorted(idxs[2])]
+            results.update({
+                state_name: ValidationResults(correct=correct,
+                                              false_positive=false_pos,
+                                              false_negative=false_neg)
+            })
+        return results
 
 
-def plot_annotated(trajectory, cv, plot_styles=None):
-    if len(trajectory.names_to_volumes) == 0:
-        raise RuntimeError("No volumes associated with this annotated trajectory")
-
+def plot_annotated(trajectory, cv, names_to_volumes, plot_styles=None):
     pass

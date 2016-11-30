@@ -86,11 +86,7 @@ class TestAnnotatedTrajectory(object):
             else:
                 assert_equal(label, None)
 
-
     def test_relabel_error(self):
-        raise SkipTest
-
-    def test_get_all_frames(self):
         raise SkipTest
 
     def test_get_segments(self):
@@ -112,13 +108,24 @@ class TestAnnotatedTrajectory(object):
             assert_equal(segments_2[0], self.traj[6:9])
 
 
+    def test_get_all_frames(self):
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        all_2 = annotated.get_all_frames("2-digit")
+        assert_equal(len(all_2), 5)
+
     def test_get_unassigned(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
         unassigned = annotated.get_unassigned()
         assert_equal(len(unassigned), 3)
         assert_equal(set(unassigned), set([0, 5, 9]))
 
+    def test_validation_idxs(self):
+        raise SkipTest
+
     def test_validate_states(self):
+        raise SkipTest
+
+    def test_store_and_reload(self):
         raise SkipTest
 
 
