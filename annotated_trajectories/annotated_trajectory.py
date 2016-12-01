@@ -25,8 +25,10 @@ class ValidationResults(namedtuple('ValidationResults', _validation_fields)):
     """
     Object returned by validation.
     
-    Simply a named tuple with the a list of the correct snapshots, the
-    snapshots which ???
+    Results from comparing frames identified by a proposed state definition
+    to the frames identified by the user. Checks for correct results, false
+    positives (proposed definition finds frames the user didn't) and false
+    negatives (user finds frames the proposed definition didn't).
 
     Parameters
     ----------
@@ -61,15 +63,24 @@ class AnnotatedTrajectory(StorableNamedObject):
 
     @classmethod
     def from_dict(cls, dct):
+        # we need a custom from_dict because storage just treats our
+        # annotations as a list, and doesn't know how to make them back into
+        # the namedtuple
         trajectory = dct['trajectory']
         annotations_list = dct['annotations']
         annotations = [Annotation(a[0], a[1], a[2]) 
                        for a in annotations_list]
         return cls(trajectory, annotations)
 
-
-
     def add_annotations(self, annotations):
+        """
+        Add annotations to the internal list. Do not do this after saving!
+
+        Parameters
+        ----------
+        annotations : :class:`.Annotation` or list of :class:`.Annotation`
+            the annotations to add to the list
+        """
         if isinstance(annotations, Annotation):
             annotations = [annotations]
         self.annotations |= set(annotations)
@@ -89,12 +100,24 @@ class AnnotatedTrajectory(StorableNamedObject):
             else:
                 self._annotation_dict[state] = [range_tuple]
 
-    def get_all_frames(self, volume):
-        return sum(self.get_segments(volume), paths.Trajectory([]))
+    def get_all_frames(self, label):
+        """Return all frames for a given label as a flattened trajectory.
 
-    def get_segments(self, volume):
+        Parameters
+        ----------
+        label : str
+            the label used for this state
+
+        Returns
+        -------
+        ``paths.Trajectory``
+            all frames in this trajectory with the given label
+        """
+        return sum(self.get_segments(label), paths.Trajectory([]))
+
+    def get_segments(self, label):
         try:
-            all_ranges = self._annotation_dict[volume]
+            all_ranges = self._annotation_dict[label]
         except KeyError:
             all_ranges = []
 
