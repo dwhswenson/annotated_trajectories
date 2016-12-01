@@ -1,4 +1,5 @@
 annotated_trajectories/version.py
+*nc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
