@@ -41,6 +41,10 @@ class ValidationResults(namedtuple('ValidationResults', _validation_fields)):
         the snapshots which were not identified as in the state by the
         volume, but were in the state according to the annotation.
     """
+    def __str__(self):  # pragma: no cover
+        return ("Correct: " + str(len(self.correct)) + "\n"
+                + "False positive: " + str(len(self.false_positive)) + "\n"
+                + "False negative: " + str(len(self.false_negative)))
 
 class AnnotatedTrajectory(StorableNamedObject):
     """Trajectory with state annotations.
@@ -114,6 +118,9 @@ class AnnotatedTrajectory(StorableNamedObject):
             all frames in this trajectory with the given label
         """
         return sum(self.get_segments(label), paths.Trajectory([]))
+
+    def get_label_for_frame(self, idx):
+        return self._frame_map[idx]
 
     def get_segment_idxs(self, label):
         try:
