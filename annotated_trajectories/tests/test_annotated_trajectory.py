@@ -1,7 +1,7 @@
 import openpathsampling as paths
 from openpathsampling.tests.test_helpers import make_1d_traj
 from annotated_trajectories import *
-from nose.tools import assert_equal, assert_in
+from nose.tools import assert_equal, assert_in, raises
 from nose.plugins.skip import SkipTest
 
 import os
@@ -52,55 +52,46 @@ class TestAnnotatedTrajectory(object):
             else:
                 assert_equal(label, None)
 
+    @staticmethod
+    def _check_standard_annotated_trajectory(trajectory):
+        # this factors out some reused test code; we usually test the same
+        # set of annotations on the same trajectory, and this code verifies
+        # that, no matter how we made it, the result is the same
+        assert_equal(len(trajectory.state_names), 3)
+        assert_equal(set(["1-digit", "2-digit", "3-digit"]),
+                     set(trajectory.state_names))
+        assert_equal(trajectory._annotation_dict["1-digit"], [(1,4)])
+        assert_equal(trajectory._annotation_dict["3-digit"], [(10,10)])
+        assert_equal(set(trajectory._annotation_dict["2-digit"]),
+                     set([(6, 8), (11, 12)]))
+        for (i, label) in enumerate(trajectory._frame_map):
+            if i in range(1, 5):
+                assert_equal(label, "1-digit")
+            elif i in range(6, 9):
+                assert_equal(label, "2-digit")
+            elif i == 10:
+                assert_equal(label, "3-digit")
+            elif i in range (11, 13):
+                assert_equal(label, "2-digit")
+            else:
+                assert_equal(label, None)
+
 
     def test_add_many_annotations(self):
         self.annotated.add_annotations([self.annotation_1,
                                         self.annotation_2,
                                         self.annotation_3,
                                         self.annotation_4])
-        assert_equal(len(self.annotated.state_names), 3)
-        assert_equal(set(["1-digit", "2-digit", "3-digit"]),
-                     set(self.annotated.state_names))
-        assert_equal(self.annotated._annotation_dict["1-digit"], [(1,4)])
-        assert_equal(self.annotated._annotation_dict["3-digit"], [(10,10)])
-        assert_equal(set(self.annotated._annotation_dict["2-digit"]),
-                     set([(6, 8), (11, 12)]))
-        for (i, label) in enumerate(self.annotated._frame_map):
-            if i in range(1, 5):
-                assert_equal(label, "1-digit")
-            elif i in range(6, 9):
-                assert_equal(label, "2-digit")
-            elif i == 10:
-                assert_equal(label, "3-digit")
-            elif i in range (11, 13):
-                assert_equal(label, "2-digit")
-            else:
-                assert_equal(label, None)
-
+        self._check_standard_annotated_trajectory(self.annotated)
 
     def test_init_with_annotations(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
-        assert_equal(len(annotated.state_names), 3)
-        assert_equal(set(["1-digit", "2-digit", "3-digit"]),
-                     set(annotated.state_names))
-        assert_equal(annotated._annotation_dict["1-digit"], [(1,4)])
-        assert_equal(annotated._annotation_dict["3-digit"], [(10,10)])
-        assert_equal(set(annotated._annotation_dict["2-digit"]),
-                     set([(6, 8), (11, 12)]))
-        for (i, label) in enumerate(annotated._frame_map):
-            if i in range(1, 5):
-                assert_equal(label, "1-digit")
-            elif i in range(6, 9):
-                assert_equal(label, "2-digit")
-            elif i == 10:
-                assert_equal(label, "3-digit")
-            elif i in range (11, 13):
-                assert_equal(label, "2-digit")
-            else:
-                assert_equal(label, None)
+        self._check_standard_annotated_trajectory(annotated)
 
+    @raises(ValueError)
     def test_relabel_error(self):
-        raise SkipTest
+        bad_annotations = self.annotations + [Annotation("2-digit", 2, 3)]
+        annotated = AnnotatedTrajectory(self.traj, bad_annotations)
 
     def test_get_segment_idxs(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
@@ -110,6 +101,15 @@ class TestAnnotatedTrajectory(object):
         assert_equal(idxs_1, [[1, 2, 3, 4]])
         assert_equal(idxs_2, [[6, 7, 8], [11, 12]])
         assert_equal(idxs_3, [[10]])
+        assert_equal(annotated.get_segment_idxs('no-such'), [])
+
+    def test_get_label_for_frame(self):
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        assert_equal(annotated.get_label_for_frame(5), None)
+        assert_equal(annotated.get_label_for_frame(3), '1-digit')
+        assert_equal(annotated.get_label_for_frame(8), '2-digit')
+        assert_equal(annotated.get_label_for_frame(10), '3-digit')
+        assert_equal(annotated.get_label_for_frame(11), '2-digit')
 
     def test_get_segments(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
@@ -128,7 +128,6 @@ class TestAnnotatedTrajectory(object):
         else:
             assert_equal(segments_2[1], self.traj[11:13])
             assert_equal(segments_2[0], self.traj[6:9])
-
 
     def test_get_all_frames(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
@@ -168,6 +167,7 @@ class TestAnnotatedTrajectory(object):
                                              end=5))
 
         (results, conflicts) = annotated.validate_states(self.states)
+
         assert_equal(results["1-digit"].correct, [s for s in self.traj[1:5]])
         assert_equal(results["1-digit"].false_positive, [])
         assert_equal(results["1-digit"].false_negative, [self.traj[5]])
@@ -183,6 +183,20 @@ class TestAnnotatedTrajectory(object):
         assert_equal(conflicts["2-digit"], [5])  # annotate != state def
         assert_equal(conflicts["3-digit"], [])
 
+    @raises(RuntimeError)
+    def test_validate_states_extra_labels(self):
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        annotated.add_annotations(Annotation(state="magic", begin=5,
+                                             end=5))
+        (results, conflicts) = annotated.validate_states(self.states)
+
+    @raises(RuntimeError)
+    def test_validate_states_extra_volumes(self):
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        states = self.states
+        states['magic'] = paths.EmptyVolume()
+        (results, conflicts) = annotated.validate_states(states)
+
     def test_store_and_reload(self):
         if os.path.isfile(data_filename("output.nc")):
             os.remove(data_filename("output.nc"))
@@ -196,25 +210,7 @@ class TestAnnotatedTrajectory(object):
 
         assert_equal(len(reloaded.trajectory), 13)
         assert_equal(len(reloaded.annotations), 4)
-
-        assert_equal(len(reloaded.state_names), 3)
-        assert_equal(set(["1-digit", "2-digit", "3-digit"]),
-                     set(reloaded.state_names))
-        assert_equal(reloaded._annotation_dict["1-digit"], [(1,4)])
-        assert_equal(reloaded._annotation_dict["3-digit"], [(10,10)])
-        assert_equal(set(reloaded._annotation_dict["2-digit"]),
-                     set([(6, 8), (11, 12)]))
-        for (i, label) in enumerate(reloaded._frame_map):
-            if i in range(1, 5):
-                assert_equal(label, "1-digit")
-            elif i in range(6, 9):
-                assert_equal(label, "2-digit")
-            elif i == 10:
-                assert_equal(label, "3-digit")
-            elif i in range (11, 13):
-                assert_equal(label, "2-digit")
-            else:
-                assert_equal(label, None)
+        self._check_standard_annotated_trajectory(reloaded)
 
         if os.path.isfile(data_filename("output.nc")):
             os.remove(data_filename("output.nc"))

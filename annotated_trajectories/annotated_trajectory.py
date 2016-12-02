@@ -42,6 +42,8 @@ class ValidationResults(namedtuple('ValidationResults', _validation_fields)):
         volume, but were in the state according to the annotation.
     """
     def __str__(self):  # pragma: no cover
+        # we don't bother to cover str in tests because it isn't officially
+        # in the API: it is allowed to change to something more clear
         return ("Correct: " + str(len(self.correct)) + "\n"
                 + "False positive: " + str(len(self.false_positive)) + "\n"
                 + "False negative: " + str(len(self.false_negative)))
@@ -120,6 +122,18 @@ class AnnotatedTrajectory(StorableNamedObject):
         return sum(self.get_segments(label), paths.Trajectory([]))
 
     def get_label_for_frame(self, idx):
+        """Return the label for a given frame number.
+
+        Parameters
+        ----------
+        idx : int
+            frame number (Python list conventions)
+
+        Returns
+        -------
+        str or None
+            the label associated with that frame (via annotations)
+        """
         return self._frame_map[idx]
 
     def get_segment_idxs(self, label):
@@ -168,19 +182,19 @@ class AnnotatedTrajectory(StorableNamedObject):
         return (correct_idxs, false_pos_idxs, false_neg_idxs)
 
     def validate_states(self, names_to_volumes):
-        n_states = len(self._annotation_dict)
-        n_defined = len(names_to_volumes)
-        if n_defined < n_states:
-            pass # log a warning?
-        elif n_defined > n_states:
-            raise RuntimeError("More states defined than annotated! "
-                               + "n_states=" + str(n_states) + "; "
-                               + "n_defined=" + str(n_defined))
+        label_keys = set(self.state_names)
+        volume_keys = set(names_to_volumes.keys())
+        if len(label_keys - volume_keys) > 0:
+            raise RuntimeError("Annotation labels have no proposed state: "
+                               + str([l for l in label_keys - volume_keys]))
+        elif len(volume_keys - label_keys) > 0:
+            raise RuntimeError("Proposed states have no annotations: "
+                               + str([l for l in volume_keys - label_keys]))
         results = {}
         conflicts = {}
         for state_name in self._annotation_dict:
-            state = names_to_volumes[state_name]
             state_annotations = self._annotation_dict[state_name]
+            state = names_to_volumes[state_name]
             idxs = self._validation_idxs(state, state_annotations)
             correct = [self.trajectory[i] for i in sorted(idxs[0])]
             false_pos = [self.trajectory[i] for i in sorted(idxs[1])]
