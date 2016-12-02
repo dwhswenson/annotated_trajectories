@@ -1,6 +1,6 @@
 import openpathsampling as paths
 from openpathsampling.tests.test_helpers import make_1d_traj
-from annotated_trajectories import AnnotatedTrajectory, Annotation
+from annotated_trajectories import *
 from nose.tools import assert_equal, assert_in
 from nose.plugins.skip import SkipTest
 
@@ -102,6 +102,15 @@ class TestAnnotatedTrajectory(object):
     def test_relabel_error(self):
         raise SkipTest
 
+    def test_get_segment_idxs(self):
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        idxs_1 = annotated.get_segment_idxs("1-digit")
+        idxs_2 = annotated.get_segment_idxs("2-digit")
+        idxs_3 = annotated.get_segment_idxs("3-digit")
+        assert_equal(idxs_1, [[1, 2, 3, 4]])
+        assert_equal(idxs_2, [[6, 7, 8], [11, 12]])
+        assert_equal(idxs_3, [[10]])
+
     def test_get_segments(self):
         annotated = AnnotatedTrajectory(self.traj, self.annotations)
         segments_1 = annotated.get_segments("1-digit")
@@ -158,7 +167,7 @@ class TestAnnotatedTrajectory(object):
         annotated.add_annotations(Annotation(state="1-digit", begin=5,
                                              end=5))
 
-        results = annotated.validate_states(self.states)
+        (results, conflicts) = annotated.validate_states(self.states)
         assert_equal(results["1-digit"].correct, [s for s in self.traj[1:5]])
         assert_equal(results["1-digit"].false_positive, [])
         assert_equal(results["1-digit"].false_negative, [self.traj[5]])
@@ -170,6 +179,9 @@ class TestAnnotatedTrajectory(object):
         assert_equal(results["3-digit"].correct, [self.traj[10]])
         assert_equal(results["3-digit"].false_positive, [self.traj[9]])
         assert_equal(results["3-digit"].false_negative, [])
+        assert_equal(conflicts["1-digit"], [])
+        assert_equal(conflicts["2-digit"], [5])  # annotate != state def
+        assert_equal(conflicts["3-digit"], [])
 
     def test_store_and_reload(self):
         if os.path.isfile(data_filename("output.nc")):
@@ -204,11 +216,16 @@ class TestAnnotatedTrajectory(object):
             else:
                 assert_equal(label, None)
 
-
         if os.path.isfile(data_filename("output.nc")):
             os.remove(data_filename("output.nc"))
 
 
-def test_plot_annotated():
-    # just a smoke test
-    raise SkipTest
+    def test_plot_annotated(self):
+        # just a smoke test
+        names_to_colors = {
+            '1-digit': 'b',
+            '2-digit': 'c',
+            '3-digit': 'r'
+        }
+        annotated = AnnotatedTrajectory(self.traj, self.annotations)
+        plot_annotated(annotated, self.cv, self.states, names_to_colors, 0.1)

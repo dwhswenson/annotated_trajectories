@@ -115,6 +115,16 @@ class AnnotatedTrajectory(StorableNamedObject):
         """
         return sum(self.get_segments(label), paths.Trajectory([]))
 
+    def get_segment_idxs(self, label):
+        try:
+            all_ranges = self._annotation_dict[label]
+        except KeyError:
+            all_ranges = []
+
+        all_segment_idxs = [range(r[0], r[1]+1) for r in all_ranges]
+        return all_segment_idxs
+
+
     def get_segments(self, label):
         try:
             all_ranges = self._annotation_dict[label]
@@ -160,6 +170,7 @@ class AnnotatedTrajectory(StorableNamedObject):
                                + "n_states=" + str(n_states) + "; "
                                + "n_defined=" + str(n_defined))
         results = {}
+        conflicts = {}
         for state_name in self._annotation_dict:
             state = names_to_volumes[state_name]
             state_annotations = self._annotation_dict[state_name]
@@ -172,8 +183,30 @@ class AnnotatedTrajectory(StorableNamedObject):
                                               false_positive=false_pos,
                                               false_negative=false_neg)
             })
-        return results
+            conflicts[state_name] = [i for i in idxs[1]  # false pos idxs
+                                     if self._frame_map[i] is not None]
+        
+        return (results, conflicts)
 
 
-def plot_annotated(trajectory, cv, names_to_volumes, plot_styles=None):
-    pass
+def plot_annotated(trajectory, cv, names_to_volumes, names_to_colors, dt=1):
+    import matplotlib.pyplot as plt
+    plt.plot([i*dt for i in range(len(trajectory.trajectory))],
+             cv(trajectory.trajectory), '-k')
+    for state_name in trajectory.state_names:
+	ann_segment_idxs = trajectory.get_segment_idxs(state_name)
+	ann_segments = trajectory.get_segments(state_name)
+	for idxs, segs in zip(ann_segment_idxs, ann_segments):
+	    if len(idxs) > 1:
+                plt.plot([i*dt for i in idxs], cv(segs), linestyle='-',
+                         color=names_to_colors[state_name])
+	    else:
+                plt.plot(idxs, cv(segs), marker='+', markersize=10,
+                         color=names_to_colors[state_name])
+	state = names_to_volumes[state_name]
+	in_state_idxs = [i for i in range(len(trajectory.trajectory))
+			 if state(trajectory.trajectory[i])]
+        plt.plot([i*dt for i in in_state_idxs], 
+                 [cv(trajectory.trajectory[i]) for i in in_state_idxs],
+                 color=names_to_colors[state_name], marker='o',
+                 linestyle='None')
