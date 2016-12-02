@@ -1,5 +1,6 @@
 annotated_trajectories/version.py
 *nc
+*.swp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
