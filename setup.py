@@ -11,7 +11,7 @@ import subprocess
 
 ##########################
 VERSION = "0.1.0"
-ISRELEASED = False
+ISRELEASED = True
 __version__ = VERSION
 ##########################
 
@@ -120,12 +120,12 @@ def buildKeywordDictionary():
     for key in sorted( setupKeywords.iterkeys() ):
          value         = setupKeywords[key]
          outputString += key.rjust(firstTab) + str( value ).rjust(secondTab) + "\n"
-    
+
     print("%s" % outputString)
 
     #get_config_var(None)  # this line is necessary to fix the imports Mac OS X
     return setupKeywords
-    
+
 
 def main():
     setupKeywords = buildKeywordDictionary()
