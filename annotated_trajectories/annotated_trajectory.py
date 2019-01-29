@@ -96,7 +96,7 @@ class AnnotatedTrajectory(StorableNamedObject):
             begin = annotation.begin
             end = annotation.end
             range_tuple = (begin, end)
-            range_list = range(begin, end+1)
+            range_list = list(range(begin, end+1))
             for frame_num in range_list:
                 if self._frame_map[frame_num] is not None:
                     raise ValueError("Cannot assign frame to more than one state")
@@ -155,7 +155,7 @@ class AnnotatedTrajectory(StorableNamedObject):
         except KeyError:
             all_ranges = []
 
-        all_segment_idxs = [range(r[0], r[1]+1) for r in all_ranges]
+        all_segment_idxs = [list(range(r[0], r[1]+1)) for r in all_ranges]
         return all_segment_idxs
 
 
@@ -194,7 +194,7 @@ class AnnotatedTrajectory(StorableNamedObject):
 
     @property
     def state_names(self):
-        return self._annotation_dict.keys()
+        return list(self._annotation_dict.keys())
 
     def _validation_idxs(self, state, state_annotations):
         """
@@ -222,7 +222,7 @@ class AnnotatedTrajectory(StorableNamedObject):
             frame indices labelled in the annotations, but not in the
             proposed state
         """
-        expected = set(sum([range(a[0], a[1]+1)
+        expected = set(sum([list(range(a[0], a[1]+1))
                             for a in state_annotations], []))
         in_state = set([i for i in range(len(self.trajectory))
                         if state(self.trajectory[i])])
