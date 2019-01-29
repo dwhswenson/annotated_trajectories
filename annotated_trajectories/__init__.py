@@ -1,1 +1,1 @@
-from annotated_trajectory import *
+from .annotated_trajectory import *

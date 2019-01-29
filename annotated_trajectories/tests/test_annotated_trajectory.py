@@ -14,16 +14,16 @@ def data_filename(fname):
 class TestAnnotatedTrajectory(object):
     def setup(self):
         # set up the trajectory that we'll annotate in the tests
-	self.traj = make_1d_traj([-1, 1, 4, 3, 6, 11, 22, 33, 23, 101, 205, 
+        self.traj = make_1d_traj([-1, 1, 4, 3, 6, 11, 22, 33, 23, 101, 205, 
                                   35, 45])
         # set up some states to test later
         # this system is designed under the assumption that the "states" are
         # defined by how many digits are in the x-coordinate (and I'll
         # intentionally fail to identify some of them)
-	self.cv = paths.CoordinateFunctionCV("x", lambda s: s.xyz[0][0])
-	self.state_1 = paths.CVDefinedVolume(self.cv, 0, 9)
-	self.state_2 = paths.CVDefinedVolume(self.cv, 10, 99)
-	self.state_3 = paths.CVDefinedVolume(self.cv, 100, 999)
+        self.cv = paths.CoordinateFunctionCV("x", lambda s: s.xyz[0][0])
+        self.state_1 = paths.CVDefinedVolume(self.cv, 0, 9)
+        self.state_2 = paths.CVDefinedVolume(self.cv, 10, 99)
+        self.state_3 = paths.CVDefinedVolume(self.cv, 100, 999)
         # create the annotations
         self.annotation_1 = Annotation(state="1-digit", begin=1, end=4)
         self.annotation_2 = Annotation(state="2-digit", begin=6, end=8)
