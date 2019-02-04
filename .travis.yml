@@ -29,17 +29,17 @@ install:
   - source ci/miniconda_install.sh
   - conda install -y -c conda-forge -c omnia --file requirements.txt
   - pip install -r requirements-tests.txt  # autorelease is pip-only
-
+  - python setup.py install
 
 script:
   - export MPLBACKEND=PS
   - python -c "import annotated_trajectories"
   - python autorelease_check.py --branch ${TRAVIS_BRANCH} --event ${TRAVIS_EVENT_TYPE}
-  - nosetests -v
+  - py.test -vv --pyargs annotated_trajectories --cov=annotated_trajectories --cov-report xml:cov.xml
 
 after_success:
   - coveralls
-  - python-codacy-coverage -r cov.xml
+  #- python-codacy-coverage -r cov.xml
 
 jobs:
   include:
