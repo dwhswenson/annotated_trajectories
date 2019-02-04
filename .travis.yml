@@ -28,7 +28,7 @@ before_install:
 install:
   - source ci/miniconda_install.sh
   - conda install -y -c conda-forge -c omnia --file requirements.txt
-  - conda install -y -c conda-forge -c omnia --file testing_requirements.txt
+  - pip install -r testing_requirements.txt  # autorelease is pip-only
 
 
 script:

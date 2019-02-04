@@ -55,8 +55,8 @@ full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
 
-if not release:
-    version = full_version
+# if not release:
+    # version = full_version
 """
     # Adding the git rev number needs to be done inside write_version_py(),
     # otherwise the import of numpy.version messes up the build under Python 3.
