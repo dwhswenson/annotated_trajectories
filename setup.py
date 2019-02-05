@@ -11,6 +11,7 @@ import subprocess
 
 ##########################
 VERSION = "0.2.0"
+PACKAGE_VERSION = VERSION
 ISRELEASED = False
 __version__ = VERSION
 ##########################

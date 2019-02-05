@@ -35,10 +35,11 @@ install:
   - python setup.py install
 
 script:
+  - which python
   - export MPLBACKEND=PS
   - python -c "import annotated_trajectories"
   - python autorelease_check.py --branch ${TRAVIS_BRANCH} --event ${TRAVIS_EVENT_TYPE}
-  - py.test -vv --pyargs annotated_trajectories --cov=annotated_trajectories --cov-report xml:cov.xml
+  - pushd ~ && py.test -vv --pyargs annotated_trajectories --cov=annotated_trajectories --cov-report xml:cov.xml && popd
 
 after_success:
   - coveralls
