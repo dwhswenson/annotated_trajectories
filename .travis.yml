@@ -39,7 +39,7 @@ script:
   - export MPLBACKEND=PS
   - python -c "import annotated_trajectories"
   - python autorelease_check.py --branch ${TRAVIS_BRANCH} --event ${TRAVIS_EVENT_TYPE}
-  - pushd ~ && py.test -vv --pyargs annotated_trajectories --cov=annotated_trajectories --cov-report xml:cov.xml && popd
+  - py.test -vv --cov=annotated_trajectories --cov-report xml:cov.xml
 
 after_success:
   - coveralls

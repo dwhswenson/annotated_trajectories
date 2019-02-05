@@ -10,7 +10,7 @@ import os
 import subprocess
 
 ##########################
-VERSION = "0.2.0"
+VERSION = "0.2.0.dev0"
 PACKAGE_VERSION = VERSION
 ISRELEASED = False
 __version__ = VERSION
