@@ -7,7 +7,7 @@ from packaging.version import Version
 
 repo_path = '.'
 versions = {
-    'package': autorelease.version.version,
+    'package': annotated_trajectories.version.version,
     'setup.py': setup.PACKAGE_VERSION,
     # 'conda-recipe': conda_recipe_version('ci/conda-recipe/meta.yaml'),
 }
