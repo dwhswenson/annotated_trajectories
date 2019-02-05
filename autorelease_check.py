@@ -1,7 +1,7 @@
 #/usr/bin/env python
 from __future__ import print_function
 import setup
-import contact_map
+import annotated_trajectories
 from autorelease import DefaultCheckRunner, conda_recipe_version
 from packaging.version import Version
 
