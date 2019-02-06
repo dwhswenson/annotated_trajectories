@@ -7,7 +7,9 @@ import os
 from pkg_resources import resource_filename
 
 # TODO: when OPS no longer imports nose
-from openpathsampling.tests.test_helpers import make_1d_traj
+# from openpathsampling.tests.test_helpers import make_1d_traj
+from openpathsampling.engines import toy as toys
+import numpy as np
 def make_1d_traj(coordinates, velocities=None, engine=None):
     if velocities is None:
         velocities = [1.0]*len(coordinates)
