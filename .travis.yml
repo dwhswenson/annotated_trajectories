@@ -1,0 +1,116 @@
+language: python
+
+branches:
+  only:
+  - master
+  - stable
+  - /^v\d+(\.\d+)+$/
+
+
+env:
+  global:
+    - CANONICAL_PYTHON="3.6"
+    - CANONICAL_MDTRAJ="release"
+    - CODECLIMATE=""
+    - TWINE_USERNAME="dwhswenson"
+    # TWINE_PASSWORD
+    # travis encrypt TWINE_PASSWORK=$PASSWORD
+    - secure: "KaL0tUc1M4weJO7obiIgQuDnzwf5+n/aJqKLcZggodaAz8cEyYjIK13CRckLOyJu8xpVSqey94w4SbY3bpYouknrHZMd5YjHMuJaEtFt+LhiSHeXX5AjOEzBaM3wDxmAgf2rXYQ0bNHgFoDEA4L0XL4xtQhrNO1v0O4/Q/jkZMZu8asL5IMaWKNChtUywi7njFJQn1W9Lc5pcjqsHaGENKVv/mt5SuXTJfFTLbryas/EwpU5k3GsGc7FOlK85nCX31COAkbUU38bCyn/sZdcdeHTJpmUPVGE2gOPq5asEvdC8sanscbksuQG7g/pRh6mHcqUHXF/l8+rBv95GOkwC8I6EVFZpu0qYbZaOefKjFdX/bC+QrvqGh8KbtCZod8Fmp+qxh5aBuKRdChX84KbJQSvAmQmQGoJPxXjBQ/btPA8iPzVuJp33yxr/UPyPo27iLBEve0bOA1kx2HAdXU+Fdz4UuWOPk1Oxxo/NgVhKkaSaDgxx5eSTuRQjmCMzuyyGLNUvsZ3RAH8EbFUCDGCPIYE+WENNV+38WL+NWRzHf8d6sFe6xMB0Ig9N6wQDZRKwEBQXAvj+Jjt9S9D5aCuHdqneTAwkDVG0ga1ErXk7f4Efyqz83o0KkCDREL6LSHsqlxT+4Pjq8OXzLx/raBCZq1R6q0QfykpxbuxvBT4ED4="
+    # AUTORELEASE_TOKEN
+    # see file TOKEN
+    # travis encrypt AUTORELEASE_TOKEN=$TOKEN
+    - secure: "a0tP8TVMyrsgwTUZdn/+tR9b0SgAJZGkOuhDO1m0juW99ge/UETYhUbhcVrXg2vVGQxOT3T3hENlNV3fykwJzs3EEs1dx51JUYv9DI+HYEnHSWq40FevfDuhf2sOpdBIzariUC09ntMQ8IOoSMx//6hutpQRuiKZUSjqmQvmfA+JAWepDTqs/xKboFfP55ebCmeFsEEAvJPZW4OsbWrurSbYhvDY6OEeHTbVTe+6kSMvLr1rwUCiHLRyV+7IgRcFpObJS2Z6nX2XTuOPnP7CiGInCrhbrnkc9etN8b1crEMQZw7d+44qgEb9eVwSz11XLyBNBYCwU1KVsMMYPGV7soJ0dQn4CJFkwR9p+NtO9Lb21dsFio+mm6M0JNWTlJpoABMjXab6w6rBmhG2mIXhkZy9QP1v+iNcnX4H9FTU6prZTMwV3s/qbP9aGWx1yKNKEfdX122faOVwmJ+pWtNqR83aSzh5mN2MK9tfoqef8OZigd7BChfdAbBnJbJonZVkV2LesGx/XmWZEgCf20qfOF+pBMenJjpx2jmaUzmT3YC4pvXWmzD4E2ipG4f5bhWQfHdCq4KbXEfOO2mEdfYZHKFFgjwE0JpbbNFqgL+GiaruohNFi4oyMmr6f+WNlZMTraSUGigFriRZiyoK1a7T3kt8Sk8ot0f76kFoKoFwRgs="
+
+  matrix:
+    - CONDA_PY=2.7
+    - CONDA_PY=3.5
+    - CONDA_PY=3.6
+
+before_install:
+  - echo "before install"
+  - deactivate
+  - git fetch --tags
+
+install:
+  - source ci/miniconda_install.sh
+  - conda install -y -c conda-forge -c omnia --file requirements.txt
+  - pip install -r requirements-tests.txt  # autorelease is pip-only
+  - python setup.py install
+
+script:
+  - which python
+  - export MPLBACKEND=PS
+  - python -c "import annotated_trajectories"
+  - python autorelease_check.py --branch ${TRAVIS_BRANCH} --event ${TRAVIS_EVENT_TYPE}
+  - py.test -vv --cov=annotated_trajectories --cov-report xml:cov.xml
+
+after_success:
+  - coveralls
+  #- python-codacy-coverage -r cov.xml
+
+jobs:
+  include:
+    - stage: deploy testpypi
+      # This stage runs when you make a PR to stable. It tests that the
+      # deployment to testpypi works.
+      if: "(branch = stable) and (type = pull_request)"
+      python: '3.6'
+      addons:
+        apt_packages:
+          - pandoc
+      install:
+        - pip install twine
+      script: 
+        - pandoc --from=markdown --to=rst --output=README.rst README.md
+        - python setup.py sdist bdist_wheel
+        - twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+      after_success: skip
+    - stage: test testpypi
+      # This stage run when you make a PR to stable; after the package has
+      # been deployed to testpypi. It checks that the deployed package
+      # works.
+      if: "(branch = stable) and (type = pull_request)"
+      python: '3.6'
+      install:
+        - source ci/pip-install/install_requirements.sh
+        - pip install -r ci/pip-install/testing_requirements.txt
+        - pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple contact_map
+      script:
+        - cd ~
+        - python -c "import contact_map"
+        - py.test --pyargs contact_map
+      after_success: skip
+    - stage: cut release
+      # This stage runs after you merge a PR into stable. It cuts the GitHub
+      # release based on the current stable branch and the release notes
+      # from the last PR merged into stable.
+      if: "(branch = stable) and (not type in (pull_request, cron))"
+      python: '3.6'
+      install:
+        - pip install autorelease
+      script:
+        - VERSION=`python setup.py --version`
+        - PROJECT=`python setup.py --name`
+        - autorelease-release --project $PROJECT --version $VERSION --token $AUTORELEASE_TOKEN
+      after_success: skip
+    - stage: deploy pypi
+      # This stage runs when a version-labelled tag is made. It deploys the
+      # package to PyPI.
+      if: tag =~ ^v[0-9]+\.
+      addons:
+        apt_packages:
+          - pandoc
+      install: skip
+      script:
+          - pandoc --from=markdown --to=rst --output=README.rst README.md
+      after_success: true
+      deploy:
+        provider: pypi
+        distributions: sdist bdist_wheel
+        skip_cleanup: true  # need the readme.rst from the script stage
+        user: dwhswenson
+        on:
+            tags: true
+        # travis encrypt $PASSWORD
+        password:
+          secure: "NC/r6rSUEL6qQ1By6Z12bRpUj5SOeXd8geJf7JGrHcdVSLOZDKzsa/2nKOE2xkSXmUbv0SEAotx2J/HGNtZVs+nUj0NQM2dVEwUmEpMjDjcCDX7ZkD2T6dhkcXiRwozf8GeVRmfVHBnBa3TFvgPHEAZhqXbHotSctkproqnHqqALV2ik/zjHGArySTRL9YTkvQZkWhQVbs99NzwsgUs1QWtPMz4OwfQ9tpzuHluoIo8rW3UytUEdBtdHygBgYggWO6O5NRbZXx2dRJRnX94b5lHfqyq09XFGptVNYoc51Ye7ZTBiNUhSL4YDK27mvRB1OWj7OB5wow428/4qp8BM9fFNjGpEGzngNZr0OFOOJPOH/BJU+vXtH6lw+Ct9+rGvE10uTQ0qc6aFqyRm313WAKmPbOq0NwFIkOn8PwRx32BPf/+r1eQOSaXSANHBH9Q1ST0VB+CEvUQqybD/Q+29Ki+8vjSyGQnONRBAYQyR4LdINp0/DejxFm6Aa7HsTqWisVXwMuetV9DGksIJ65EXjjtRSIBr9+FbgKi7uIloOVQ6/GDl+ln+vwU32M/+Vl6NEblF6/MEegxXc5Y15+4h5HOMjRdPUgnDG8gnLIAPjsiTOLHoXCKPsPNwZOrzEL32U4xsYZp70AWsl2icLBKwO0UmudHBmPZs5BLEhTreqkU="

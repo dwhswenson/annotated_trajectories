@@ -1,5 +1,4 @@
 import openpathsampling as paths
-from openpathsampling.tests.test_helpers import make_1d_traj
 from annotated_trajectories import *
 
 import pytest
@@ -7,6 +6,35 @@ import pytest
 import os
 from pkg_resources import resource_filename
 
+# TODO: when OPS no longer imports nose
+# from openpathsampling.tests.test_helpers import make_1d_traj
+from openpathsampling.engines import toy as toys
+import numpy as np
+def make_1d_traj(coordinates, velocities=None, engine=None):
+    if velocities is None:
+        velocities = [1.0]*len(coordinates)
+    try:
+        _ = len(velocities)
+    except TypeError:
+        velocities = [velocities] * len(coordinates)
+
+    if engine is None:
+        engine = toys.Engine(
+            {},
+            toys.Topology(
+                n_spatial=3,
+                masses=[1.0, 1.0, 1.0], pes=None
+            )
+        )
+    traj = []
+    for (pos, vel) in zip(coordinates, velocities):
+        snap = toys.Snapshot(
+            coordinates=np.array([[pos, 0, 0]]),
+            velocities=np.array([[vel, 0, 0]]),
+            engine=engine
+        )
+        traj.append(snap)
+    return paths.Trajectory(traj)
 
 def data_filename(fname):
     return resource_filename('annotated_trajectories',
