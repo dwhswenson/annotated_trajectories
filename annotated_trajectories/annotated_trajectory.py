@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 import matplotlib.pyplot as plt
 import openpathsampling as paths
@@ -158,6 +159,50 @@ class AnnotatedTrajectory(StorableNamedObject):
         all_segment_idxs = [list(range(r[0], r[1]+1)) for r in all_ranges]
         return all_segment_idxs
 
+    def write_json_annotations(self, outfile):
+        """Write the annotations to a JSON-formatted file
+
+        Parameters
+        ----------
+        outfile : str or file-like object
+            If a string, this is taken to be the name of the output file. If
+            a file-like object, JSON is written directly to that.
+        """
+        json_str = json.dumps(list(self.annotations))
+        if isinstance(outfile, str):
+            with open(outfile, 'w') as f:
+                f.write(json_str)
+        else:
+            outfile.write(json_str)
+
+    @staticmethod
+    def read_json_annotations(filename):
+        """Read annotations from a JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to read the JSON annotations from
+
+        Returns
+        -------
+        set :
+            set of :class:`.Annotations` based on the JSON file
+        """
+        with open(filename, 'r') as f:
+            annotation_list = json.load(f)
+        annotations = set(Annotation(*item) for item in annotation_list)
+        return annotations
+
+    def load_annotations_from_json(self, filename):
+        """Loads annotations into this instance based on JSON file.
+
+        Parameters
+        ----------
+        filename : str
+            name of the file to read the JSON annotations from
+        """
+        self.add_annotations(self.read_json_annotations(filename))
 
     def get_segments(self, label):
         """Subtrajectories for each annotation segment for label.

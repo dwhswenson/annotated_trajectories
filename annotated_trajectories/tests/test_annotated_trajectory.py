@@ -243,6 +243,12 @@ class TestAnnotatedTrajectory(object):
         if os.path.isfile(data_filename("output.nc")):
             os.remove(data_filename("output.nc"))
 
+    def test_write_and_read_json(self):
+        pytest.skip()
+
+    def test_write_and_load_json(self):
+        pytest.skip()
+
 
     def test_plot_annotated(self):
         # just a smoke test
