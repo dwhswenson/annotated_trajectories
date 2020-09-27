@@ -33,7 +33,7 @@ before_install:
 
 install:
   - source ci/miniconda_install.sh
-  - conda install -y -c conda-forge -c omnia --file requirements.txt
+  - conda install -y -c conda-forge --file requirements.txt
   - pip install -r requirements-tests.txt  # autorelease is pip-only
   - python setup.py install
 

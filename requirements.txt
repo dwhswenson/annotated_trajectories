@@ -1,2 +1,3 @@
 matplotlib
 openpathsampling
+ujson <2
